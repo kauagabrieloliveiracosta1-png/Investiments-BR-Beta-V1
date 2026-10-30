@@ -1,0 +1,54 @@
+
+name: Build Investiments BR APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar projeto
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Extrair projeto
+        run: |
+          mkdir -p source
+          unzip -o investiments_br_flutter_source.zip -d source
+
+      - name: Localizar projeto Flutter
+        run: |
+          FILE=$(find source -name pubspec.yaml -print -quit)
+          if [ -z "$FILE" ]; then
+            echo "pubspec.yaml não encontrado no ZIP"
+            exit 1
+          fi
+          echo "APP_DIR=$(dirname "$FILE")" >> $GITHUB_ENV
+
+      - name: Instalar dependências
+        run: cd "$APP_DIR" && flutter pub get
+
+      - name: Compilar APK
+        run: cd "$APP_DIR" && flutter build apk --release
+
+      - name: Disponibilizar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Investiments-BR-APK
+          path: ${{ env.APP_DIR }}/build/app/outputs/flutter-apk/app-release.apk
+          
